@@ -17,10 +17,13 @@ const Z = (x, y) => a * Math.cos((n * Math.PI) / R * Math.sqrt(x * x + y * y));
 function Model(name) {
     this.name = name;
     this.iVertexBuffer = gl.createBuffer();
+    this.verticesLength = 0;
     
     this.BufferData = function(vertices) {
         gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STREAM_DRAW);
+
+        this.verticesLength = vertices.length;
     }
 
     this.Draw = function() {
@@ -31,6 +34,12 @@ function Model(name) {
         // Draw horizontal lines
         for (let i = 0; i < countHorizontalLines; i += 1) {
             gl.drawArrays(gl.LINE_STRIP, countVerticalLines * i, countVerticalLines);
+        }
+
+        // Draw vertical lines
+        let startOfVerticalVertex = this.verticesLength / (2 * 3);
+        for (let i = 0; i < countVerticalLines; i += 1) {
+            gl.drawArrays(gl.LINE_STRIP, startOfVerticalVertex + (countHorizontalLines * i), countHorizontalLines);
         }
     }
 }
@@ -105,6 +114,16 @@ function CreateSurfaceData()
     // Horizontal lines
     for (let r = 0; r < maxR; r += rStep) {
         for (let angle = 0; angle <= maxAngle; angle += angleStep) {
+            let x = X(r, angle);
+            let y = Y(r, angle);
+            let z = Z(x, y);
+            vertexList.push(x, y, z);
+        }
+    }
+
+    // Vertical lines
+    for (let angle = 0; angle <= maxAngle; angle += angleStep) {
+        for (let r = 0; r < maxR; r += rStep) {
             let x = X(r, angle);
             let y = Y(r, angle);
             let z = Z(x, y);
