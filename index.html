@@ -1,13 +1,8 @@
 <!DOCTYPE html>
 <html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
-
+    <link rel="stylesheet" type="text/css" href="styles.css">
 <title>PA#1</title>
-<style>
-    body {
-        background-color: #EEEEEE;
-    }
-</style>
 
 <script src="./Utils/trackball-rotator.js"></script>
 <script src="./Utils/m4.js"></script>
@@ -17,15 +12,56 @@
 </head>
 <body onload="init()">
 
-<h2>A 'Surface of Revolution of a General Sinusoid' with "Trackball" Mouse Rotation</h2>
+    <div id="text-container">
+        <h2>A 'Surface of Revolution of a General Sinusoid' with "Trackball" Mouse Rotation</h2>
+        <p id="message">Drag your mouse on the surface to rotate it.<br>
+        (On a touch screen, you can use your finger.)</p>
+    </div>
 
-<p id="message">Drag your mouse on the surface to rotate it.<br>
-(On a touch screen, you can use your finger.)</p>
-
-
-<div id="canvas-holder">
+<div class="content">
+<div id="canvas-holder" class="canvas">
    <canvas width="600" height="600" id="webglcanvas" style="background-color:red"></canvas>
 </div>
 
+<div class="parameters">
+    <div>
+        <label for="a">a:</label>
+        <input type="number" id="a" name="a">
+    </div>
+    
+    <div>
+        <label for="n">n:</label>
+        <input type="number" id="n" name="n">
+    </div>
+    
+    <div>
+        <label for="R">R:</label>
+        <input type="number" id="R" name="R">
+    </div>
+    
+    <div>
+        <label for="r">r:</label>
+        <input type="number" id="r" name="r">
+    </div>
+    
+    <div>
+        <label for="rStep">r step (enter number to divide PI):</label>
+        <input type="number" id="rStep" name="rStep">
+    </div>
+    
+    <div>
+        <label for="angleStep">Angle step (enter number to divide PI):</label>
+        <input type="number" id="angleStep" name="angleStep">
+    </div>
+    
+    <div class="button">
+        <button onclick="redraw()">Draw</button>
+    </div>
+
+    <div class="button">
+        <button onclick="drawDefault()">Draw Default Surface</button>
+    </div>
+</div>
+</div>
 
 </body></html>

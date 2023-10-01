@@ -5,13 +5,29 @@ let surface;                    // A surface model
 let shProgram;                  // A shader program
 let spaceball;                  // A SimpleRotator object that lets the user rotate the view by mouse.
 
-const a = 0.5;
-const n = 0.5;
-const R = 0.5;
+let parameters = {};
+
+let countHorizontalLines = 0;
+let countVerticalLines = 0;
+
+function initParameters() {
+    parameters = {
+        a: 0.5,
+        n: 0.5,
+        R: 0.5,
+        r: 7,
+        rStep: 10,
+        angleStep: 5
+    };
+
+    for (let key in parameters) {
+        document.getElementById(key).value = parameters[key];
+    }
+}
 
 const X = (r, angle) => r * Math.cos(angle);
 const Y = (r, angle) => r * Math.sin(angle);
-const Z = (x, y) => a * Math.cos((n * Math.PI) / R * Math.sqrt(x * x + y * y));
+const Z = (x, y) => parameters.a * Math.cos((parameters.n * Math.PI) / parameters.R * Math.sqrt(x * x + y * y));
 
 // Constructor
 function Model(name) {
@@ -96,26 +112,57 @@ function draw() {
     surface.Draw();
 }
 
-let countHorizontalLines = 0;
-let countVerticalLines = 0;
+function drawDefault() {
+    initParameters();
+    updateDataAndDraw();
+    
+}
+
+function redraw() {
+    setNewParameters();
+    updateDataAndDraw();
+}
+
+function setNewParameters() {
+    parameters.a = getValueByElementId('a');
+    parameters.n = getValueByElementId('n');
+    parameters.R = getValueByElementId('R');
+    parameters.r = getValueByElementId('r');
+    parameters.rStep = getValueByElementId('rStep');
+    parameters.angleStep = getValueByElementId('angleStep');
+}
+
+function updateDataAndDraw() {
+    surface.BufferData(CreateSurfaceData());
+    draw();
+}
+
+function getValueByElementId(elementId) {
+    const value = document.getElementById(elementId).value;
+    if (value) {
+        return parseFloat(value);
+    }
+    document.getElementById(elementId).value = parameters[elementId];
+    return parameters[elementId];
+}
 
 function CreateSurfaceData()
 {
     let vertexList = [];
     
-    let rStep = Math.PI / 10;
-    let maxR = 7;
-    countHorizontalLines = Math.floor(maxR / rStep) + 1;
+    let rStep = Math.PI / parameters.rStep;
+    let angleStep = Math.PI / parameters.angleStep;
+
+    countHorizontalLines = Math.floor(parameters.r / rStep) + 1;
 
     let maxAngle = 2 * Math.PI;
-    let angleStep = Math.PI / 5;
     countVerticalLines = Math.floor(maxAngle / angleStep) + 1;
     
     // Horizontal lines
-    for (let r = 0; r < maxR; r += rStep) {
+    for (let tempR = 0; tempR < parameters.r; tempR += rStep) {
         for (let angle = 0; angle <= maxAngle; angle += angleStep) {
-            let x = X(r, angle);
-            let y = Y(r, angle);
+            let x = X(tempR, angle);
+            let y = Y(tempR, angle);
             let z = Z(x, y);
             vertexList.push(x, y, z);
         }
@@ -123,9 +170,9 @@ function CreateSurfaceData()
 
     // Vertical lines
     for (let angle = 0; angle <= maxAngle; angle += angleStep) {
-        for (let r = 0; r < maxR; r += rStep) {
-            let x = X(r, angle);
-            let y = Y(r, angle);
+        for (let tempR = 0; tempR <= parameters.r; tempR += rStep) {
+            let x = X(tempR, angle);
+            let y = Y(tempR, angle);
             let z = Z(x, y);
             vertexList.push(x, y, z);
         }
@@ -147,9 +194,14 @@ function initGL() {
     shProgram.iColor                     = gl.getUniformLocation(prog, "color");
 
     surface = new Model('Surface of Revolution of a General Sinusoid');
-    surface.BufferData(CreateSurfaceData());
+    initParameters();
+    setBufferData(surface);
 
     gl.enable(gl.DEPTH_TEST);
+}
+
+function setBufferData(surface) {
+    surface.BufferData(CreateSurfaceData());
 }
 
 
