@@ -5,32 +5,33 @@ let surface;                    // A surface model
 let shProgram;                  // A shader program
 let spaceball;                  // A SimpleRotator object that lets the user rotate the view by mouse.
 
-function deg2rad(angle) {
-    return angle * Math.PI / 180;
-}
+const a = 0.5;
+const n = 0.5;
+const R = 0.5;
 
+const X = (r, angle) => r * Math.cos(angle);
+const Y = (r, angle) => r * Math.sin(angle);
+const Z = (x, y) => a * Math.cos((n * Math.PI) / R * Math.sqrt(x * x + y * y));
 
 // Constructor
 function Model(name) {
     this.name = name;
     this.iVertexBuffer = gl.createBuffer();
-    this.count = 0;
-
+    
     this.BufferData = function(vertices) {
-
         gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STREAM_DRAW);
-
-        this.count = vertices.length/3;
     }
 
     this.Draw = function() {
-
         gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
         gl.vertexAttribPointer(shProgram.iAttribVertex, 3, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(shProgram.iAttribVertex);
    
-        gl.drawArrays(gl.LINE_STRIP, 0, this.count);
+        // Draw horizontal lines
+        for (let i = 0; i < countHorizontalLines; i += 1) {
+            gl.drawArrays(gl.LINE_STRIP, countVerticalLines * i, countVerticalLines);
+        }
     }
 }
 
@@ -63,7 +64,7 @@ function draw() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     
     /* Set the values of the projection transformation */
-    let projection = m4.perspective(Math.PI/8, 1, 8, 12); 
+    let projection = m4.perspective(Math.PI / 2, 1, 1, 20); 
     
     /* Get the view matrix from the SimpleRotator object.*/
     let modelView = spaceball.getViewMatrix();
@@ -86,13 +87,29 @@ function draw() {
     surface.Draw();
 }
 
+let countHorizontalLines = 0;
+let countVerticalLines = 0;
+
 function CreateSurfaceData()
 {
     let vertexList = [];
+    
+    let rStep = Math.PI / 10;
+    let maxR = 7;
+    countHorizontalLines = Math.floor(maxR / rStep) + 1;
 
-    for (let i=0; i<360; i+=5) {
-        vertexList.push( Math.sin(deg2rad(i)), 1, Math.cos(deg2rad(i)) );
-        vertexList.push( Math.sin(deg2rad(i)), 0, Math.cos(deg2rad(i)) );
+    let maxAngle = 2 * Math.PI;
+    let angleStep = Math.PI / 5;
+    countVerticalLines = Math.floor(maxAngle / angleStep) + 1;
+    
+    // Horizontal lines
+    for (let r = 0; r < maxR; r += rStep) {
+        for (let angle = 0; angle <= maxAngle; angle += angleStep) {
+            let x = X(r, angle);
+            let y = Y(r, angle);
+            let z = Z(x, y);
+            vertexList.push(x, y, z);
+        }
     }
 
     return vertexList;
@@ -110,7 +127,7 @@ function initGL() {
     shProgram.iModelViewProjectionMatrix = gl.getUniformLocation(prog, "ModelViewProjectionMatrix");
     shProgram.iColor                     = gl.getUniformLocation(prog, "color");
 
-    surface = new Model('Surface');
+    surface = new Model('Surface of Revolution of a General Sinusoid');
     surface.BufferData(CreateSurfaceData());
 
     gl.enable(gl.DEPTH_TEST);
