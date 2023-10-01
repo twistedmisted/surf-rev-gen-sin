@@ -25,6 +25,7 @@ function initParameters() {
     }
 }
 
+// Lambda functions to calculate vertex of 'Surface of Revolution of a General Sinusoid'
 const X = (r, angle) => r * Math.cos(angle);
 const Y = (r, angle) => r * Math.sin(angle);
 const Z = (x, y) => parameters.a * Math.cos((parameters.n * Math.PI) / parameters.R * Math.sqrt(x * x + y * y));
@@ -80,10 +81,7 @@ function ShaderProgram(name, program) {
 }
 
 
-/* Draws a colored cube, along with a set of coordinate axes.
- * (Note that the use of the above drawPrimitive function is not an efficient
- * way to draw with WebGL.  Here, the geometry is so simple that it doesn't matter.)
- */
+/* Draws a 'Surface of Revolution of a General Sinusoid' */
 function draw() { 
     gl.clearColor(0,0,0,1);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -106,23 +104,31 @@ function draw() {
 
     gl.uniformMatrix4fv(shProgram.iModelViewProjectionMatrix, false, modelViewProjection );
     
-    /* Draw the six faces of a cube, with different colors. */
     gl.uniform4fv(shProgram.iColor, [1,1,0,1] );
 
     surface.Draw();
 }
 
+/**
+ * Draws a surface with defualt values.
+ */
 function drawDefault() {
     initParameters();
     updateDataAndDraw();
     
 }
 
+/**
+ * Draws a surface with parameters entered by user on UI.
+ */
 function redraw() {
     setNewParameters();
     updateDataAndDraw();
 }
 
+/**
+ * Gets parameters from UI and updates it on program config.
+ */
 function setNewParameters() {
     parameters.a = getValueByElementId('a');
     parameters.n = getValueByElementId('n');
@@ -132,11 +138,17 @@ function setNewParameters() {
     parameters.angleStep = getValueByElementId('angleStep');
 }
 
+/**
+ * Updates buffer data and draws a surface.
+ */
 function updateDataAndDraw() {
     surface.BufferData(CreateSurfaceData());
     draw();
 }
 
+/**
+ * Gets value from UI by its element id.
+ */
 function getValueByElementId(elementId) {
     const value = document.getElementById(elementId).value;
     if (value) {
@@ -146,6 +158,9 @@ function getValueByElementId(elementId) {
     return parameters[elementId];
 }
 
+/**
+ * Creates surface data by explicit equation of 'Surface of Revolution of a General Sinusoid' 
+ */
 function CreateSurfaceData()
 {
     let vertexList = [];
