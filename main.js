@@ -10,13 +10,13 @@ let parameters = {};
 let countHorizontalLines = 0;
 let countVerticalLines = 0;
 
+const maxAngle = 2 * Math.PI;
+
 function initParameters() {
     parameters = {
-        a: 0.5,
-        n: 0.5,
-        R: 0.5,
-        r: 7,
-        rStep: 10,
+        a: 3,
+        b: 1,
+        zStep: 0.1,
         angleStep: 5
     };
 
@@ -25,10 +25,10 @@ function initParameters() {
     }
 }
 
-// Lambda functions to calculate vertex of 'Surface of Revolution of a General Sinusoid'
-const X = (r, angle) => r * Math.cos(angle);
-const Y = (r, angle) => r * Math.sin(angle);
-const Z = (x, y) => parameters.a * Math.cos((parameters.n * Math.PI) / parameters.R * Math.sqrt(x * x + y * y));
+// Lambda functions to calculate vertex of 'Surface of Revolution of a "Pear"'
+const X = (rZ, angle) => rZ * Math.sin(angle);
+const Y = (rZ, angle) => rZ * Math.cos(angle);
+const RZ = (z) => (z * Math.sqrt(z * (parameters.a - z))) / parameters.b
 
 // Constructor
 function Model(name) {
@@ -81,13 +81,13 @@ function ShaderProgram(name, program) {
 }
 
 
-/* Draws a 'Surface of Revolution of a General Sinusoid' */
+/* Draws a 'Surface of Revolution "Pear"' */
 function draw() { 
     gl.clearColor(0,0,0,1);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     
     /* Set the values of the projection transformation */
-    let projection = m4.perspective(Math.PI / 2, 1, 1, 20); 
+    let projection = m4.perspective(Math.PI / 3, 1, 1, 20); 
     
     /* Get the view matrix from the SimpleRotator object.*/
     let modelView = spaceball.getViewMatrix();
@@ -131,10 +131,8 @@ function redraw() {
  */
 function setNewParameters() {
     parameters.a = getValueByElementId('a');
-    parameters.n = getValueByElementId('n');
-    parameters.R = getValueByElementId('R');
-    parameters.r = getValueByElementId('r');
-    parameters.rStep = getValueByElementId('rStep');
+    parameters.b = getValueByElementId('b');
+    parameters.zStep = getValueByElementId('zStep');
     parameters.angleStep = getValueByElementId('angleStep');
 }
 
@@ -159,38 +157,37 @@ function getValueByElementId(elementId) {
 }
 
 /**
- * Creates surface data by explicit equation of 'Surface of Revolution of a General Sinusoid' 
+ * Creates surface data by explicit equation of 'Surface of Revolution "Pear"' 
  */
 function CreateSurfaceData()
 {
     let vertexList = [];
+
+    countHorizontalLines = 0;
+    countVerticalLines = 0;
     
-    let rStep = Math.PI / parameters.rStep;
     let angleStep = Math.PI / parameters.angleStep;
 
-    countHorizontalLines = Math.floor(parameters.r / rStep) + 1;
-
-    let maxAngle = 2 * Math.PI;
-    countVerticalLines = Math.floor(maxAngle / angleStep) + 1;
-    
     // Horizontal lines
-    for (let tempR = 0; tempR < parameters.r; tempR += rStep) {
+    for (let z = 0; z <= parameters.a; z = +(parameters.zStep + z).toFixed(2)) {
         for (let angle = 0; angle <= maxAngle; angle += angleStep) {
-            let x = X(tempR, angle);
-            let y = Y(tempR, angle);
-            let z = Z(x, y);
+            let rZ = RZ(z);
+            let x = X(rZ, angle);
+            let y = Y(rZ, angle);
             vertexList.push(x, y, z);
         }
+        countHorizontalLines += 1;
     }
 
     // Vertical lines
     for (let angle = 0; angle <= maxAngle; angle += angleStep) {
-        for (let tempR = 0; tempR <= parameters.r; tempR += rStep) {
-            let x = X(tempR, angle);
-            let y = Y(tempR, angle);
-            let z = Z(x, y);
+        for (let z = 0; z <= parameters.a; z = +(parameters.zStep + z).toFixed(2)) {
+            let rZ = RZ(z);
+            let x = X(rZ, angle);
+            let y = Y(rZ, angle);
             vertexList.push(x, y, z);
         }
+        countVerticalLines += 1;
     }
 
     return vertexList;
@@ -208,7 +205,7 @@ function initGL() {
     shProgram.iModelViewProjectionMatrix = gl.getUniformLocation(prog, "ModelViewProjectionMatrix");
     shProgram.iColor                     = gl.getUniformLocation(prog, "color");
 
-    surface = new Model('Surface of Revolution of a General Sinusoid');
+    surface = new Model('Surface of Revolution "Pear"');
     initParameters();
     setBufferData(surface);
 
