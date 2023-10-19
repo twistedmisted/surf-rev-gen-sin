@@ -170,7 +170,6 @@ function CreateSurfaceData()
 
     // Horizontal lines
     for (let z = 0; z <= parameters.a; z = +(parameters.zStep + z).toFixed(2)) {
-        console.log("z = " + z)
         for (let angle = 0; angle <= maxAngle; angle += angleStep) {
             let rZ = RZ(z);
             let x = X(rZ, angle);
