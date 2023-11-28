@@ -1,5 +1,13 @@
 'use strict';
 
+class Point {
+    constructor(x, y, z) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+    }
+}
+
 let gl;                         // The webgl context.
 let surface;                    // A surface model
 let shProgram;                  // A shader program
@@ -40,7 +48,7 @@ function Model(name) {
         gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STREAM_DRAW);
 
-        this.verticesLength = vertices.length;
+        this.verticesLength = vertices.length / 3;
     }
 
     this.Draw = function() {
@@ -48,16 +56,7 @@ function Model(name) {
         gl.vertexAttribPointer(shProgram.iAttribVertex, 3, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(shProgram.iAttribVertex);
    
-        // Draw horizontal lines
-        for (let i = 0; i < countHorizontalLines; i += 1) {
-            gl.drawArrays(gl.LINE_STRIP, countVerticalLines * i, countVerticalLines);
-        }
-
-        // Draw vertical lines
-        let startOfVerticalVertex = this.verticesLength / (2 * 3);
-        for (let i = 0; i < countVerticalLines; i += 1) {
-            gl.drawArrays(gl.LINE_STRIP, startOfVerticalVertex + (countHorizontalLines * i), countHorizontalLines);
-        }
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, this.verticesLength);
     }
 }
 
@@ -95,16 +94,16 @@ function draw() {
     let rotateToPointZero = m4.axisRotation([0.707,0.707,0], 0.7);
     let translateToPointZero = m4.translation(0,0,-10);
 
-    let matAccum0 = m4.multiply(rotateToPointZero, modelView );
-    let matAccum1 = m4.multiply(translateToPointZero, matAccum0 );
+    let matAccum0 = m4.multiply(rotateToPointZero, modelView);
+    let matAccum1 = m4.multiply(translateToPointZero, matAccum0);
         
     /* Multiply the projection matrix times the modelview matrix to give the
        combined transformation matrix, and send that to the shader program. */
-    let modelViewProjection = m4.multiply(projection, matAccum1 );
+    let modelViewProjection = m4.multiply(projection, matAccum1);
 
-    gl.uniformMatrix4fv(shProgram.iModelViewProjectionMatrix, false, modelViewProjection );
+    gl.uniformMatrix4fv(shProgram.iModelViewProjectionMatrix, false, modelViewProjection);
     
-    gl.uniform4fv(shProgram.iColor, [1,1,0,1] );
+    gl.uniform4fv(shProgram.iColor, [1,1,0,1]);
 
     surface.Draw();
 }
@@ -159,38 +158,36 @@ function getValueByElementId(elementId) {
 /**
  * Creates surface data by explicit equation of 'Surface of Revolution "Pear"' 
  */
-function CreateSurfaceData()
-{
+function CreateSurfaceData() {
     let vertexList = [];
-
-    countHorizontalLines = 0;
-    countVerticalLines = 0;
     
     let angleStep = Math.PI / parameters.angleStep;
 
-    // Horizontal lines
-    for (let z = 0; z <= parameters.a; z = +(parameters.zStep + z).toFixed(2)) {
-        for (let angle = 0; angle <= maxAngle; angle += angleStep) {
-            let rZ = RZ(z);
-            let x = X(rZ, angle);
-            let y = Y(rZ, angle);
-            vertexList.push(x, y, z);
-        }
-        countHorizontalLines += 1;
-    }
-
-    // Vertical lines
     for (let angle = 0; angle <= maxAngle; angle += angleStep) {
         for (let z = 0; z <= parameters.a; z = +(parameters.zStep + z).toFixed(2)) {
-            let rZ = RZ(z);
-            let x = X(rZ, angle);
-            let y = Y(rZ, angle);
-            vertexList.push(x, y, z);
+            let p1 = calcVertPoint(z, angle);
+            let p2 = calcVertPoint(z, angle + angleStep);
+            let p3 = calcVertPoint(+(parameters.zStep + z).toFixed(2), angle);
+            let p4 = calcVertPoint(+(parameters.zStep + z).toFixed(2), angle + angleStep);
+
+            vertexList.push(p1.x, p1.y, p1.z);
+            vertexList.push(p2.x, p2.y, p2.z);
+            vertexList.push(p3.x, p3.y, p3.z);
+
+            vertexList.push(p2.x, p2.y, p2.z);
+            vertexList.push(p4.x, p4.y, p4.z);
+            vertexList.push(p3.x, p3.y, p3.z);
         }
-        countVerticalLines += 1;
     }
 
     return vertexList;
+}
+
+function calcVertPoint(z, angle) {
+    let rZ = RZ(z);
+    let x = X(rZ, angle);
+    let y = Y(rZ, angle);
+    return new Point(x, y, z);
 }
 
 
