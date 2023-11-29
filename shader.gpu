@@ -2,11 +2,12 @@
 
 // Vertex shader
 const vertexShaderSource = `
-attribute vec3 vertex;
+attribute vec3 vVertex;
+attribute vec3 vNormal;
 uniform mat4 ModelViewProjectionMatrix;
 
 void main() {
-    gl_Position = ModelViewProjectionMatrix * vec4(vertex,1.0);
+    gl_Position = ModelViewProjectionMatrix * vec4(vVertex,1.0);
 }`;
 
 

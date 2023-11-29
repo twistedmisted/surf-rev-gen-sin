@@ -6,6 +6,17 @@ class Point {
         this.y = y;
         this.z = z;
     }
+
+    transformVector() {
+        return [this.x, this.y, this.z];
+    }
+}
+
+class SurfaceData {
+    constructor(vertexList, normalList) {
+        this.vertexList = vertexList;
+        this.normalList = normalList;
+    }
 }
 
 let gl;                         // The webgl context.
@@ -42,13 +53,17 @@ const RZ = (z) => (z * Math.sqrt(z * (parameters.a - z))) / parameters.b
 function Model(name) {
     this.name = name;
     this.iVertexBuffer = gl.createBuffer();
+    this.iNormalBuffer = gl.createBuffer();
     this.verticesLength = 0;
     
-    this.BufferData = function(vertices) {
+    this.BufferData = function(surfData) {
         gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STREAM_DRAW);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(surfData.vertexList), gl.STREAM_DRAW);
 
-        this.verticesLength = vertices.length / 3;
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.iNormalBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(surfData.normalList), gl.STREAM_DRAW);
+
+        this.verticesLength = surfData.vertexList.length / 3;
     }
 
     this.Draw = function() {
@@ -56,6 +71,10 @@ function Model(name) {
         gl.vertexAttribPointer(shProgram.iAttribVertex, 3, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(shProgram.iAttribVertex);
    
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.iNormalBuffer);
+        gl.vertexAttribPointer(shProgram.iAttribNormal, 3, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(shProgram.iAttribNormal);
+
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, this.verticesLength);
     }
 }
@@ -69,6 +88,7 @@ function ShaderProgram(name, program) {
 
     // Location of the attribute variable in the shader program.
     this.iAttribVertex = -1;
+    this.iAttribNormal = -1;
     // Location of the uniform specifying a color for the primitive.
     this.iColor = -1;
     // Location of the uniform matrix representing the combined transformation.
@@ -160,6 +180,8 @@ function getValueByElementId(elementId) {
  */
 function CreateSurfaceData() {
     let vertexList = [];
+    let tempVertList = [];
+    let facesList = [];
     
     let angleStep = Math.PI / parameters.angleStep;
 
@@ -170,17 +192,32 @@ function CreateSurfaceData() {
             let p3 = calcVertPoint(+(parameters.zStep + z).toFixed(2), angle);
             let p4 = calcVertPoint(+(parameters.zStep + z).toFixed(2), angle + angleStep);
 
-            vertexList.push(p1.x, p1.y, p1.z);
-            vertexList.push(p2.x, p2.y, p2.z);
-            vertexList.push(p3.x, p3.y, p3.z);
-
-            vertexList.push(p2.x, p2.y, p2.z);
-            vertexList.push(p4.x, p4.y, p4.z);
-            vertexList.push(p3.x, p3.y, p3.z);
+            facesList.push([p1, p2, p3], [p2, p4, p3]);
+            tempVertList.push(p1, p2, p3, p4);
         }
     }
 
-    return vertexList;
+    let vertexNormals = [];
+    for (let i = 0; i < tempVertList.length; i++) {
+        let thisVertexNormal = [0, 0, 0];
+        for (let j = 0; j < facesList.length; j++) {
+            const face = facesList[j];
+            if (face.includes(tempVertList[i])) {
+                let p1 = face[0];
+                let p2 = face[1];
+                let p3 = face[2];
+                let n = calcNormPoint(p1, p2, p3);
+                thisVertexNormal[0] += n.x;
+                thisVertexNormal[1] += n.y;
+                thisVertexNormal[2] += n.z;
+            }
+        }
+        const normalizedNormal = m4.normalize(thisVertexNormal);
+        vertexNormals.push(normalizedNormal[0], normalizedNormal[1], normalizedNormal[2]);
+        vertexList.push(tempVertList[i].x, tempVertList[i].y, tempVertList[i].z);
+    }
+
+    return new SurfaceData(vertexList, vertexNormals);
 }
 
 function calcVertPoint(z, angle) {
@@ -188,6 +225,14 @@ function calcVertPoint(z, angle) {
     let x = X(rZ, angle);
     let y = Y(rZ, angle);
     return new Point(x, y, z);
+}
+
+function calcNormPoint(p1, p2, p3) {
+    let v1 = m4.subtractVectors(p2.transformVector(), p1.transformVector());
+    let v2 = m4.subtractVectors(p3.transformVector(), p1.transformVector());
+    let cp = m4.cross(v1, v2);
+    let n = m4.normalize(cp);
+    return new Point(n[0], n[1], n[2]);
 }
 
 
@@ -198,7 +243,9 @@ function initGL() {
     shProgram = new ShaderProgram('Basic', prog);
     shProgram.Use();
 
-    shProgram.iAttribVertex              = gl.getAttribLocation(prog, "vertex");
+    shProgram.iAttribVertex              = gl.getAttribLocation(prog, "vVertex");
+    shProgram.iAttribNormal              = gl.getAttribLocation(prog, "vNormal");
+
     shProgram.iModelViewProjectionMatrix = gl.getUniformLocation(prog, "ModelViewProjectionMatrix");
     shProgram.iColor                     = gl.getUniformLocation(prog, "color");
 
