@@ -106,7 +106,7 @@ function draw() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     
     /* Set the values of the projection transformation */
-    let projection = m4.perspective(Math.PI / 3, 1, 1, 20); 
+    let projection = m4.orthographic(-20, 20, -20, 20, -20, 20);
     
     /* Get the view matrix from the SimpleRotator object.*/
     let modelView = spaceball.getViewMatrix();
