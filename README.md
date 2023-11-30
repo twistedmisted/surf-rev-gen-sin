@@ -6,11 +6,5 @@ Visit vggi-kpi.blogspot.com for more information
 
 ## Surface of Revolution "Pear"
 
-Gif animation of example of work with surface
+Gif animation of example of work with surface for PA#2
 ![gif-animation](Example_of_work.gif)
-
-Example of surface when you start the program for the first time:
-![default-surface](default-surface.png)
-
-Example of surface when was changed some parameters on UI:
-![changed-parameters](changed-parameters.png)
