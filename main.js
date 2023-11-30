@@ -278,12 +278,6 @@ function CreateSurfaceData() {
         }
     }
 
-    let tp1 = new Point(0, 0, 0);
-    let tp2 = new Point(20, 0, 0);
-    let tp3 = new Point(20, 20, 20);
-    let tp4 = new Point(0, 20, 0);
-    // facesList = [[tp1, tp2, tp3]];
-    // tempVertList = [tp1, tp2, tp3];
     let vertexNormals = [];
     for (let i = 0; i < tempVertList.length; i++) {
         let thisVertexNormal = [0, 0, 0];
