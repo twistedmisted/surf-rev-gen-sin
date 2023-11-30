@@ -29,9 +29,6 @@ let up = [0, 1, 0];
 
 let parameters = {};
 
-let spotlightAngle;
-let spotlightRotation;
-
 const maxAngle = 2 * Math.PI;
 
 function initParameters() {
@@ -391,15 +388,10 @@ function createProgram(gl, vShader, fShader) {
     return prog;
 }
 
-let lightPositionEl;
 /**
  * initialization function that will be called when the page has loaded
  */
 function init() {
-    lightPositionEl = document.getElementById('lightPostion');
-    spotlightAngle = document.getElementById('spotlightAngle');
-    spotlightRotation = document.getElementById('spotlightRotation');
-    
     let canvas;
     try {
         canvas = document.getElementById("webglcanvas");
