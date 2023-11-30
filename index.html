@@ -2,7 +2,7 @@
 <html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
     <link rel="stylesheet" type="text/css" href="styles.css">
-<title>PA#1</title>
+<title>PA#2</title>
 
 <script src="./Utils/trackball-rotator.js"></script>
 <script src="./Utils/m4.js"></script>
@@ -20,28 +20,90 @@
 
 <div class="content">
 <div id="canvas-holder" class="canvas">
-   <canvas width="600" height="600" id="webglcanvas" style="background-color:red"></canvas>
+   <canvas width="850" height="850" id="webglcanvas" style="background-color:red"></canvas>
 </div>
 
 <div class="parameters">
     <div>
         <label for="a">a:</label>
-        <input type="number" id="a" name="a">
+        <input type="number" id="a" name="a" onchange="redraw()">
     </div>
     
     <div>
         <label for="b">b:</label>
-        <input type="number" id="b" name="b">
+        <input type="number" id="b" name="b" onchange="redraw()">
     </div>
     
     <div>
         <label for="zStep">z step:</label>
-        <input type="number" id="zStep" name="zStep">
+        <input type="number" id="zStep" name="zStep" onchange="redraw()">
     </div>
     
     <div>
         <label for="angleStep">Angle step (enter number to divide PI):</label>
-        <input type="number" id="angleStep" name="angleStep">
+        <input type="number" id="angleStep" name="angleStep" onchange="redraw()">
+    </div>
+
+    <div>
+        <label>Color Parameters:</label>
+    </div>
+
+    <div>
+        <label for="ka">Ambient:</label>
+        <input type="number" id="ka" min="0" max="1" step="0.1" name="ka" onchange="redraw()">
+    </div>
+
+    <div>
+        <label for="kd">Diffuse:</label>
+        <input type="number" id="kd" min="0" max="1" step="0.1" name="kd" onchange="redraw()">
+    </div>
+
+    <div>
+        <label for="ks">Specular:</label>
+        <input type="number" id="ks" min="0" max="1" step="0.1" name="ks" onchange="redraw()">
+    </div>
+
+    <div>
+        <label for="shininess">Shininess:</label>
+        <input type="number" id="shininess" name="shininess" onchange="redraw()">
+    </div>
+
+    <div>
+        <label>Spotlight Parameters:</label>
+    </div>
+
+    <div id="lightPostion">
+        <label for="lightPostionX">Position X:</label>
+        <input id="lightPostionX" type="range" min="-20" max="20" value="0" step="0.01" onchange="redraw()" oninput="this.nextElementSibling.value = this.value"/>
+        <output>0</output>
+        <br>
+        <label for="lightPostionY">Position Y:</label>
+        <input id="lightPostionY" type="range" min="-20" max="20" value="0" step="0.01" onchange="redraw()" oninput="this.nextElementSibling.value = this.value"/>
+        <output>0</output>
+        <br>
+        <label for="lightPostionZ">Position Z:</label>
+        <input id="lightPostionZ" type="range" min="-20" max="20" value="-1" step="0.01" onchange="redraw()" oninput="this.nextElementSibling.value = this.value"/>
+        <output>-1</output>
+    </div>
+
+    <div id="spotlightAngle">
+        <label for="innerLimit">Inner Limit:</label>
+        <input id="innerLimit" type="range" min="0" max="180" step="1" value="10" onchange="redraw()" oninput="this.nextElementSibling.value = this.value"/>
+        <output>10</output>
+        <br>
+        <label for="outerLimit">Outer Limit:</label>
+        <input id="outerLimit" type="range" min="0" max="180" step="1" value="20" onchange="redraw()" oninput="this.nextElementSibling.value = this.value"/>
+        <output>20</output>
+    </div>
+
+    <div id="spotlightRotation">
+        <label for="spotlightRotationX">X Rotation:</label>
+        <input id="spotlightRotationX" type="range" min="-10" max="10" step="0.01" value="0" onchange="redraw()" oninput="this.nextElementSibling.value = this.value"/>
+        <output>0</output>
+        <br>
+        <label for="spotlightRotationY">Y Rotation:</label>
+        <input id="spotlightRotationY" type="range" min="-10" max="10" step="0.01" value="0" onchange="redraw()" oninput="this.nextElementSibling.value = this.value"/>
+        <output>0</output>
     </div>
     
     <div class="button">
