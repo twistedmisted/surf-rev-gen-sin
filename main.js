@@ -50,8 +50,6 @@ function initParameters() {
         spotlightRotationY: 0,
         innerLimit: 10,
         outerLimit: 20,
-        sLine: -1,
-        fLine: 1,
         stLine: 0.1,
         moveBy: 'x'
     };
@@ -483,24 +481,14 @@ function animate() {
         window.cancelAnimationFrame(reqAnim);
         return;
     }
+    let newPosition = Math.sin(stepLightPosition) * RZ(parameters.a - parameters.zStep);
+    stepLightPosition += parameters.stLine;
     if (parameters.moveBy === 'x') {
-        let curPos = parameters.lightPostionX;
-        if (curPos >= parameters.fLine || curPos <= parameters.sLine) {
-            stepLightPosition = -stepLightPosition;
-        }
-        parameters.lightPostionX += stepLightPosition;
+        parameters.lightPostionX = newPosition;
     } else if (parameters.moveBy === 'y') {
-        let curPos = parameters.lightPostionY;
-        if (curPos >= parameters.fLine || curPos <= parameters.sLine) {
-            stepLightPosition = -stepLightPosition;
-        }
-        parameters.lightPostionY += stepLightPosition;
+        parameters.lightPostionY = newPosition;
     } else {
-        let curPos = parameters.lightPostionZ;
-        if (curPos >= parameters.fLine || curPos <= parameters.sLine) {
-            stepLightPosition = -stepLightPosition;
-        }
-        parameters.lightPostionZ += stepLightPosition;
+        parameters.lightPostionZ = newPosition;
     }
     draw();
     setTimeout(() => {
@@ -514,11 +502,11 @@ function animControl() {
         isAnimated = false;
         return;
     } else {
-        parameters.sLine = getValueByElementId("sLine");
-        parameters.fLine = getValueByElementId("fLine");
+        if (stepLightPosition == null) {
+            stepLightPosition = parameters.stLine;
+        }
         parameters.stLine = getValueByElementId("stLine");
         parameters.moveBy = document.getElementById("moveBy").value;
-        stepLightPosition = parameters.stLine;
         isAnimated = true;
         reqAnim = window.requestAnimationFrame(animate);
     }
