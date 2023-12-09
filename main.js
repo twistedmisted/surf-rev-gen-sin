@@ -21,7 +21,9 @@ class SurfaceData {
 
 let gl;                         // The webgl context.
 let surface;                    // A surface model
+let lightLine;                  // A spotlight model
 let shProgram;                  // A shader program
+let shLight;                    // A shader program for light
 let spaceball;                  // A SimpleRotator object that lets the user rotate the view by mouse.
 
 let target = [0, 0, 10];
@@ -47,7 +49,11 @@ function initParameters() {
         spotlightRotationX: 0,
         spotlightRotationY: 0,
         innerLimit: 10,
-        outerLimit: 20
+        outerLimit: 20,
+        sLine: -1,
+        fLine: 1,
+        stLine: 0.1,
+        moveBy: 'x'
     };
 
     for (let key in parameters) {
@@ -90,6 +96,35 @@ function Model(name) {
     }
 }
 
+function LightModel(name) {
+    this.name = name;
+    this.iVertexBuffer = gl.createBuffer();
+
+    this.Draw = function() {
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(lightDirectionLine), gl.STREAM_DRAW);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
+        gl.vertexAttribPointer(shLight.iAttribVertex, 3, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(shLight.iAttribVertex);
+
+        gl.uniform4fv(shLight.iColor, [0,1,1,1] );
+
+        gl.drawArrays(gl.LINE_STRIP, 0, 2);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(lightPos), gl.DYNAMIC_DRAW);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
+        gl.vertexAttribPointer(shLight.iAttribVertex, 3, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(shLight.iAttribVertex);
+
+        gl.uniform4fv(shLight.iColor, [1,0,0,1] );
+
+        gl.drawArrays(gl.POINTS, 0, 1);
+    }
+}
+
 
 // Constructor
 function ShaderProgram(name, program) {
@@ -121,6 +156,8 @@ function ShaderProgram(name, program) {
     this.iInnerLimit = -1;
     this.iOuterLimit = -1;
 
+    this.iColor = -1;
+
     this.Use = function() {
         gl.useProgram(this.prog);
     }
@@ -130,9 +167,13 @@ function deg2rad(angle) {
     return angle * Math.PI / 180;
 }
 
+let lightPos;
+let lightDirectionLine;
 
 /* Draws a 'Surface of Revolution "Pear"' */
-function draw() { 
+function draw() {
+    shProgram.Use();
+
     gl.clearColor(0,0,0,1);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     
@@ -159,7 +200,6 @@ function draw() {
 
     gl.uniformMatrix4fv(shProgram.iNormalMatrix, false, normalMatrix);
 
-    let lightPos = [0, 0, -1];
     lightPos = [parameters.lightPostionX, parameters.lightPostionY, parameters.lightPostionZ];
     gl.uniform3fv(shProgram.iLightPos, lightPos);
 
@@ -168,6 +208,8 @@ function draw() {
     lmat = m4.multiply(m4.yRotation(deg2rad(parameters.spotlightRotationY)), lmat);
     let lightDirection = [-lmat[8], -lmat[9], -lmat[10]];
 
+    lightDirectionLine = [...lightPos, ...lightDirection];
+    
     gl.uniform3fv(shProgram.iLightDirection, lightDirection);
 
     gl.uniform1f(shProgram.iShininess, parameters.shininess);
@@ -190,6 +232,9 @@ function draw() {
     gl.uniform3fv(shProgram.iSpecularColor, [1.0, 1.0, 1.0]);
 
     surface.Draw();
+
+    shLight.Use();
+    lightLine.Draw();
 }
 
 /**
@@ -319,7 +364,6 @@ function initGL() {
     let prog = createProgram( gl, vertexShaderSource, fragmentShaderSource );
 
     shProgram = new ShaderProgram('Basic', prog);
-    shProgram.Use();
 
     shProgram.iAttribVertex              = gl.getAttribLocation(prog, "vVertex");
     shProgram.iModelViewProjectionMatrix = gl.getUniformLocation(prog, "ModelViewProjectionMatrix");
@@ -345,7 +389,17 @@ function initGL() {
     
     shProgram.spotlightAngle             = gl.getUniformLocation(prog, "uSpotlightAngle");
 
+    let lightProg = createProgram( gl , vertexShaderSourceForLight, fragmentShaderSourceForLight );
+
+    shLight = new ShaderProgram('Basic', lightProg);
+    
+    shLight.iAttribVertex              = gl.getAttribLocation(lightProg, "vLightLine");
+    shLight.iColor                     = gl.getUniformLocation(lightProg, "color");
+    
+
     surface = new Model('Surface of Revolution "Pear"');
+    lightLine = new LightModel('Surface of Revolution "Pear"1');
+
     initParameters();
     setBufferData(surface);
 
@@ -417,4 +471,55 @@ function init() {
     spaceball = new TrackballRotator(canvas, draw, 0);
 
     draw();
+}
+
+let stepLightPosition;
+
+const fps = 25;
+let reqAnim;
+
+function animate() {
+    if (!isAnimated) {
+        window.cancelAnimationFrame(reqAnim);
+        return;
+    }
+    if (parameters.moveBy === 'x') {
+        let curPos = parameters.lightPostionX;
+        if (curPos >= parameters.fLine || curPos <= parameters.sLine) {
+            stepLightPosition = -stepLightPosition;
+        }
+        parameters.lightPostionX += stepLightPosition;
+    } else if (parameters.moveBy === 'y') {
+        let curPos = parameters.lightPostionY;
+        if (curPos >= parameters.fLine || curPos <= parameters.sLine) {
+            stepLightPosition = -stepLightPosition;
+        }
+        parameters.lightPostionY += stepLightPosition;
+    } else {
+        let curPos = parameters.lightPostionZ;
+        if (curPos >= parameters.fLine || curPos <= parameters.sLine) {
+            stepLightPosition = -stepLightPosition;
+        }
+        parameters.lightPostionZ += stepLightPosition;
+    }
+    draw();
+    setTimeout(() => {
+        reqAnim = window.requestAnimationFrame(animate);    
+    }, 1000 / fps);
+}
+
+let isAnimated;
+function animControl() {
+    if (isAnimated) {
+        isAnimated = false;
+        return;
+    } else {
+        parameters.sLine = getValueByElementId("sLine");
+        parameters.fLine = getValueByElementId("fLine");
+        parameters.stLine = getValueByElementId("stLine");
+        parameters.moveBy = document.getElementById("moveBy").value;
+        stepLightPosition = parameters.stLine;
+        isAnimated = true;
+        reqAnim = window.requestAnimationFrame(animate);
+    }
 }
