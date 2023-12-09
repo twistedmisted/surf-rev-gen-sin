@@ -47,7 +47,11 @@ function initParameters() {
         spotlightRotationX: 0,
         spotlightRotationY: 0,
         innerLimit: 10,
-        outerLimit: 20
+        outerLimit: 20,
+        sLine: -1,
+        fLine: 1,
+        stLine: 0.1,
+        moveBy: 'x'
     };
 
     for (let key in parameters) {
@@ -417,4 +421,55 @@ function init() {
     spaceball = new TrackballRotator(canvas, draw, 0);
 
     draw();
+}
+
+let stepLightPosition;
+
+const fps = 25;
+let reqAnim;
+
+function animate() {
+    if (!isAnimated) {
+        window.cancelAnimationFrame(reqAnim);
+        return;
+    }
+    if (parameters.moveBy === 'x') {
+        let curPos = parameters.lightPostionX;
+        if (curPos >= parameters.fLine || curPos <= parameters.sLine) {
+            stepLightPosition = -stepLightPosition;
+        }
+        parameters.lightPostionX += stepLightPosition;
+    } else if (parameters.moveBy === 'y') {
+        let curPos = parameters.lightPostionY;
+        if (curPos >= parameters.fLine || curPos <= parameters.sLine) {
+            stepLightPosition = -stepLightPosition;
+        }
+        parameters.lightPostionY += stepLightPosition;
+    } else {
+        let curPos = parameters.lightPostionZ;
+        if (curPos >= parameters.fLine || curPos <= parameters.sLine) {
+            stepLightPosition = -stepLightPosition;
+        }
+        parameters.lightPostionZ += stepLightPosition;
+    }
+    draw();
+    setTimeout(() => {
+        reqAnim = window.requestAnimationFrame(animate);    
+    }, 1000 / fps);
+}
+
+let isAnimated;
+function animControl() {
+    if (isAnimated) {
+        isAnimated = false;
+        return;
+    } else {
+        parameters.sLine = getValueByElementId("sLine");
+        parameters.fLine = getValueByElementId("fLine");
+        parameters.stLine = getValueByElementId("stLine");
+        parameters.moveBy = document.getElementById("moveBy").value;
+        stepLightPosition = parameters.stLine;
+        isAnimated = true;
+        reqAnim = window.requestAnimationFrame(animate);
+    }
 }
