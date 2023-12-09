@@ -7,4 +7,6 @@ Visit vggi-kpi.blogspot.com for more information
 ## Surface of Revolution "Pear"
 
 Gif animation of example of work with spotlight animation for PA#3
-![pa3](https://github.com/twistedmisted/surf-rev-pear/assets/49749263/2751916d-de2f-45c3-8e86-ea887d4999c6)
+![pa3](https://github.com/twistedmisted/surf-rev-pear/assets/49749263/a76f385a-dee6-490b-8a05-b617b98a945a)
+
+
