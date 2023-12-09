@@ -46,6 +46,14 @@ void main() {
     color = vec4(Ka * ambientColor + Kd * light * diffuseColor + Ks * specular * specularColor, 1.0);
 }`;
 
+// Vertex shader for Light
+const vertexShaderSourceForLight = `
+attribute vec3 vLightLine;
+
+void main() {
+    gl_Position = vec4(vLightLine,1.0);
+    gl_PointSize = 15.0;
+}`;
 
 // Fragment shader
 const fragmentShaderSource = `
@@ -56,6 +64,19 @@ const fragmentShaderSource = `
 #endif
 
 varying vec4 color;
+void main() {
+    gl_FragColor = color;
+}`;
+
+// Fragment shader for Light
+const fragmentShaderSourceForLight = `
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+   precision highp float;
+#else
+   precision mediump float;
+#endif
+
+uniform vec4 color;
 void main() {
     gl_FragColor = color;
 }`;
