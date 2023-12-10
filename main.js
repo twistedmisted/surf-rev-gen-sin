@@ -32,33 +32,25 @@ class SurfaceData {
 
 let gl;                         // The webgl context.
 let surface;                    // A surface model
+let rotationPointModel;         // A model for rotation point
 let shProgram;                  // A shader program
 let spaceball;                  // A SimpleRotator object that lets the user rotate the view by mouse.
 
-let target = [0, 0, 10];
-let up = [0, 1, 0];
+let texturePoint;
 
 let parameters = {};
 
 const maxAngle = 2 * Math.PI;
 
 function initParameters() {
+    texturePoint = { x: 0, y: 0 };
+
     parameters = {
         a: 10,
         b: 4,
-        zStep: 0.05,
+        zStep: 0.1,
         angleStep: 10,
-        ka: 1.0,
-        kd: 1.0,
-        ks: 1.0,
-        shininess: 40.0,
-        lightPostionX: 0,
-        lightPostionY: 0,
-        lightPostionZ: -1,
-        spotlightRotationX: 0,
-        spotlightRotationY: 0,
-        innerLimit: 10,
-        outerLimit: 20
+        rotTexAngleDeg: 0
     };
 
     for (let key in parameters) {
@@ -102,6 +94,19 @@ function Model(name) {
 
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, this.verticesLength);
     }
+
+    this.PointBuffer = function(pointData) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(pointData), gl.DYNAMIC_DRAW);
+    }
+
+    this.DrawPoint = function() {
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
+        gl.vertexAttribPointer(shProgram.iAttribVertex, 3, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(shProgram.iAttribVertex);
+
+        gl.drawArrays(gl.POINTS, 0, 1);
+    }
 }
 
 
@@ -116,18 +121,12 @@ function ShaderProgram(name, program) {
     this.iAttribTexture = -1;
     // Location of the uniform matrix representing the combined transformation.
     this.iModelViewProjectionMatrix = -1;
+    
     this.iTMU = -1;
 
-    this.Ka = -1;
-    this.Kd = -1;
-    this.Ks = -1;
-
-    // Light parameters
-    this.iLightPos = -1;
-    this.spotlightAngle = -1;
-    this.iLightDirection = -1;
-    this.iInnerLimit = -1;
-    this.iOuterLimit = -1;
+    this.iTranslatePoint = -1;
+    this.iTexturePoint = -1;
+    this.iAngleRad = -1;
 
     this.Use = function() {
         gl.useProgram(this.prog);
@@ -137,7 +136,6 @@ function ShaderProgram(name, program) {
 function deg2rad(angle) {
     return angle * Math.PI / 180;
 }
-
 
 /* Draws a 'Surface of Revolution "Pear"' */
 function draw() { 
@@ -153,11 +151,8 @@ function draw() {
     let rotateToPointZero = m4.axisRotation([0.707,0.707,0], 0.7);
     let translateToPointZero = m4.translation(0,0,-10);
 
-    let matAccum0 = modelView;
+    let matAccum0 = m4.multiply(rotateToPointZero, modelView);
     let matAccum1 = m4.multiply(translateToPointZero, matAccum0);
-
-    const modelviewInv = m4.inverse(matAccum1, new Float32Array(16));
-    const normalMatrix = m4.transpose(modelviewInv, new Float32Array(16));
         
     /* Multiply the projection matrix times the modelview matrix to give the
        combined transformation matrix, and send that to the shader program. */
@@ -165,39 +160,19 @@ function draw() {
 
     gl.uniformMatrix4fv(shProgram.iModelViewProjectionMatrix, false, modelViewProjection);
 
-    gl.uniformMatrix4fv(shProgram.iNormalMatrix, false, normalMatrix);
+    gl.uniform1i(shProgram.iTMU, 0);
 
-    let lightPos = [0, 0, -1];
-    lightPos = [parameters.lightPostionX, parameters.lightPostionY, parameters.lightPostionZ];
-    gl.uniform3fv(shProgram.iLightPos, lightPos);
-
-    let lmat = m4.lookAt(lightPos, target, up);
-    lmat = m4.multiply(m4.xRotation(deg2rad(parameters.spotlightRotationX)), lmat);
-    lmat = m4.multiply(m4.yRotation(deg2rad(parameters.spotlightRotationY)), lmat);
-    let lightDirection = [-lmat[8], -lmat[9], -lmat[10]];
-
-    gl.uniform3fv(shProgram.iLightDirection, lightDirection);
-
-    gl.uniform1f(shProgram.iShininess, parameters.shininess);
-    gl.uniform1f(shProgram.Ka, parameters.ka);
-    gl.uniform1f(shProgram.Kd, parameters.kd);
-    gl.uniform1f(shProgram.Ks, parameters.ks);
-
-    gl.uniform3fv(shProgram.viewWorldPositionLocation, [0, 0, 0]);
-
-    let innerLimit = deg2rad(parameters.innerLimit);
-    let outerLimit = deg2rad(parameters.outerLimit);
-
-    let deg = deg2rad(10);
-    gl.uniform1f(shProgram.spotlightAngle, deg);
-    gl.uniform1f(shProgram.iInnerLimit, Math.cos(innerLimit));
-    gl.uniform1f(shProgram.iOuterLimit, Math.cos(outerLimit));
-
-    gl.uniform3fv(shProgram.iAmbientColor, [0.2, 0.1, 0.0]);
-    gl.uniform3fv(shProgram.iDiffuseColor, [1.0, 1.0, 0.0]);
-    gl.uniform3fv(shProgram.iSpecularColor, [1.0, 1.0, 1.0]);
+    gl.uniform2fv(shProgram.iTexturePoint, [texturePoint.x, texturePoint.y]);
+    gl.uniform1f(shProgram.iAngleRad, deg2rad(parameters.rotTexAngleDeg));
 
     surface.Draw();
+    
+    let translationForUserPoint = calcVertPoint(mapBack(texturePoint.x, parameters.a), mapBack(texturePoint.y, maxAngle));
+
+    gl.uniform3fv(shProgram.iTranslatePoint, translationForUserPoint.transformVector());
+    gl.uniform1f(shProgram.iAngleRad, -1.0);
+
+    rotationPointModel.DrawPoint();
 }
 
 /**
@@ -225,20 +200,7 @@ function setNewParameters() {
     parameters.b = getValueByElementId('b');
     parameters.zStep = getValueByElementId('zStep');
     parameters.angleStep = getValueByElementId('angleStep');
-    parameters.ka = getValueByElementId('ka')
-    parameters.kd = getValueByElementId('kd');
-    parameters.ks =  getValueByElementId('ks');
-    parameters.shininess = getValueByElementId('shininess');
-
-    parameters.lightPostionX = getValueByElementId('lightPostionX');
-    parameters.lightPostionY = getValueByElementId('lightPostionY');
-    parameters.lightPostionZ = getValueByElementId('lightPostionZ');
-
-    parameters.spotlightRotationX = getValueByElementId('spotlightRotationX');
-    parameters.spotlightRotationY = getValueByElementId('spotlightRotationY');
-
-    parameters.innerLimit = getValueByElementId('innerLimit');
-    parameters.outerLimit = getValueByElementId('outerLimit');
+    parameters.rotTexAngleDeg = getValueByElementId('rotTexAngleDeg');
 }
 
 /**
@@ -315,6 +277,36 @@ function calcNormPoint(p1, p2, p3) {
     return new Point(n[0], n[1], n[2]);
 }
 
+function calcUVPoint(u, uMAx, v, vMax) {
+    return new UVPoint(map(u, uMAx), map(v, vMax));
+}
+
+function map(val, max) {
+    return val / max;
+}
+
+function mapBack(val, max) {
+    return val * max;
+}
+
+function LoadTexture() {
+    var texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    var image = new Image();
+    image.crossOrigin = 'anonymous';
+    image.src = "https://raw.githubusercontent.com/twistedmisted/surf-rev-pear/CGW/texture/water.png";
+    image.onload = () => {
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+
+        draw();
+    }
+}
 
 /* Initialize the WebGL context. Called from init() */
 function initGL() {
@@ -326,30 +318,20 @@ function initGL() {
     shProgram.iAttribVertex              = gl.getAttribLocation(prog, "vVertex");
     shProgram.iModelViewProjectionMatrix = gl.getUniformLocation(prog, "ModelViewProjectionMatrix");
     
-    shProgram.iAttribNormal              = gl.getAttribLocation(prog, 'vNormal');
-    shProgram.iNormalMatrix              = gl.getUniformLocation(prog, 'normalMat');
+    shProgram.iAttribTexture             = gl.getAttribLocation(prog, "texCoord");
+    shProgram.iTMU                       = gl.getUniformLocation(prog, "tmu");
 
-    shProgram.iAmbientColor              = gl.getUniformLocation(prog, 'ambientColor');
-    shProgram.iDiffuseColor              = gl.getUniformLocation(prog, 'diffuseColor');
-    shProgram.iSpecularColor             = gl.getUniformLocation(prog, 'specularColor');
-
-    shProgram.iShininess                 = gl.getUniformLocation(prog, 'shininess');
-
-    shProgram.Ka                         = gl.getUniformLocation(prog, 'Ka');
-    shProgram.Kd                         = gl.getUniformLocation(prog, 'Kd');
-    shProgram.Ks                         = gl.getUniformLocation(prog, 'Ks');
-
-    shProgram.iLightPos                  = gl.getUniformLocation(prog, 'lightPosition');
-    
-    shProgram.iLightDirection            = gl.getUniformLocation(prog, "uLightDirection");
-    shProgram.iInnerLimit                = gl.getUniformLocation(prog, "u_innerLimit");
-    shProgram.iOuterLimit                = gl.getUniformLocation(prog, "u_outerLimit");
-    
-    shProgram.spotlightAngle             = gl.getUniformLocation(prog, "uSpotlightAngle");
+    shProgram.iTranslatePoint            = gl.getUniformLocation(prog, 'pTranslate');
+    shProgram.iTexturePoint              = gl.getUniformLocation(prog, 'pTexture');
+    shProgram.iAngleRad                  = gl.getUniformLocation(prog, 'angleRad');
 
     surface = new Model('Surface of Revolution "Pear"');
     initParameters();
+    LoadTexture();
     setBufferData(surface);
+
+    rotationPointModel = new Model('Rotation Point');
+    rotationPointModel.PointBuffer([0.0, 0.0, 0.0]);
 
     gl.enable(gl.DEPTH_TEST);
 }
