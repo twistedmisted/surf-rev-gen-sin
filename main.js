@@ -12,10 +12,21 @@ class Point {
     }
 }
 
+class UVPoint {
+    constructor(u, v) {
+        this.u = u;
+        this.v = v;
+    }
+
+    transformVector() {
+        return [this.u, this.v];
+    }
+}
+
 class SurfaceData {
-    constructor(vertexList, normalList) {
+    constructor(vertexList, texturePoints) {
         this.vertexList = vertexList;
-        this.normalList = normalList;
+        this.texturePoints = texturePoints;
     }
 }
 
@@ -64,17 +75,20 @@ const RZ = (z) => (z * Math.sqrt(z * (parameters.a - z))) / parameters.b
 function Model(name) {
     this.name = name;
     this.iVertexBuffer = gl.createBuffer();
-    this.iNormalBuffer = gl.createBuffer();
+    this.iTextureBuffer = gl.createBuffer();
     this.verticesLength = 0;
+    this.textureLength = 0;
     
     this.BufferData = function(surfData) {
         gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(surfData.vertexList), gl.STREAM_DRAW);
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.iNormalBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(surfData.normalList), gl.STREAM_DRAW);
-
         this.verticesLength = surfData.vertexList.length / 3;
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.iTextureBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(surfData.texturePoints), gl.STREAM_DRAW);
+
+        this.textureLength = surfData.texturePoints.length / 2;
     }
 
     this.Draw = function() {
@@ -82,9 +96,9 @@ function Model(name) {
         gl.vertexAttribPointer(shProgram.iAttribVertex, 3, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(shProgram.iAttribVertex);
    
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.iNormalBuffer);
-        gl.vertexAttribPointer(shProgram.iAttribNormal, 3, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(shProgram.iAttribNormal);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.iTextureBuffer);
+        gl.vertexAttribPointer(shProgram.iAttribTexture, 2, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(shProgram.iAttribTexture);
 
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, this.verticesLength);
     }
@@ -99,16 +113,10 @@ function ShaderProgram(name, program) {
 
     // Location of the attribute variable in the shader program.
     this.iAttribVertex = -1;
-    this.iAttribNormal = -1;
+    this.iAttribTexture = -1;
     // Location of the uniform matrix representing the combined transformation.
     this.iModelViewProjectionMatrix = -1;
-    this.iNormalMatrix = -1;
-
-    // Color parameters
-    this.iAmbientColor = -1;
-    this.iDiffuseColor = -1;
-    this.iSpecularColor = -1;
-    this.iShininess = -1;
+    this.iTMU = -1;
 
     this.Ka = -1;
     this.Kd = -1;
@@ -258,44 +266,38 @@ function getValueByElementId(elementId) {
  */
 function CreateSurfaceData() {
     let vertexList = [];
-    let tempVertList = [];
-    let facesList = [];
+    let texturePoints = [];
     
     let angleStep = Math.PI / parameters.angleStep;
 
-    for (let angle = 0; angle <= maxAngle; angle += angleStep) {
         for (let z = 0; z <= (parameters.a - parameters.zStep).toFixed(2); z = +(parameters.zStep + z).toFixed(2)) {
-            let p1 = calcVertPoint(z, angle);
-            let p2 = calcVertPoint(z, angle + angleStep);
-            let p3 = calcVertPoint(+(parameters.zStep + z).toFixed(2), angle);
-            let p4 = calcVertPoint(+(parameters.zStep + z).toFixed(2), angle + angleStep);
+        for (let angle = 0; angle <= maxAngle - angleStep; angle += angleStep) {
+            let u1 = z;
+            let v1 = angle;
+            let u2 = z;
+            let v2 = angle + angleStep;
+            let u3 = +(parameters.zStep + z).toFixed(2);
+            let v3 = angle;
+            let u4 = +(parameters.zStep + z).toFixed(2);
+            let v4 = angle + angleStep;
 
-            facesList.push([p1, p2, p3], [p2, p4, p3]);
-            tempVertList.push(p1, p2, p3, p4);
+            let p1 = calcVertPoint(u1, v1);
+            let p2 = calcVertPoint(u2, v2);
+            let p3 = calcVertPoint(u3, v3);
+            let p4 = calcVertPoint(u4, v4);
+
+            vertexList.push(...p1.transformVector(), ...p2.transformVector(), ...p3.transformVector(), ...p4.transformVector());
+
+            let uv1 = calcUVPoint(u1, parameters.a, v1, maxAngle);
+            let uv2 = calcUVPoint(u2, parameters.a, v2, maxAngle);
+            let uv3 = calcUVPoint(u3, parameters.a, v3, maxAngle);
+            let uv4 = calcUVPoint(u4, parameters.a, v4, maxAngle);
+
+            texturePoints.push(...uv1.transformVector(), ...uv2.transformVector(), ...uv3.transformVector(), ...uv4.transformVector());
         }
     }
 
-    let vertexNormals = [];
-    for (let i = 0; i < tempVertList.length; i++) {
-        let thisVertexNormal = [0, 0, 0];
-        for (let j = 0; j < facesList.length; j++) {
-            const face = facesList[j];
-            if (face.includes(tempVertList[i])) {
-                let p1 = face[0];
-                let p2 = face[1];
-                let p3 = face[2];
-                let n = calcNormPoint(p1, p2, p3);
-                thisVertexNormal[0] += n.x;
-                thisVertexNormal[1] += n.y;
-                thisVertexNormal[2] += n.z;
-            }
-        }
-        const normalizedNormal = m4.normalize(thisVertexNormal);
-        vertexNormals.push(normalizedNormal[0], normalizedNormal[1], normalizedNormal[2]);
-        vertexList.push(tempVertList[i].x, tempVertList[i].y, tempVertList[i].z);
-    }
-
-    return new SurfaceData(vertexList, vertexNormals);
+    return new SurfaceData(vertexList, texturePoints);
 }
 
 function calcVertPoint(z, angle) {
