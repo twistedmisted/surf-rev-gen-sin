@@ -269,14 +269,6 @@ function calcVertPoint(z, angle) {
     return new Point(x, y, z);
 }
 
-function calcNormPoint(p1, p2, p3) {
-    let v1 = m4.subtractVectors(p2.transformVector(), p1.transformVector());
-    let v2 = m4.subtractVectors(p3.transformVector(), p1.transformVector());
-    let cp = m4.cross(v1, v2);
-    let n = m4.normalize(cp);
-    return new Point(n[0], n[1], n[2]);
-}
-
 function calcUVPoint(u, uMAx, v, vMax) {
     return new UVPoint(map(u, uMAx), map(v, vMax));
 }
