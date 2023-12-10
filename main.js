@@ -127,7 +127,7 @@ function ShaderProgram(name, program) {
     this.iTranslatePoint = -1;
     this.iTexturePoint = -1;
     this.iAngleRad = -1;
-
+    
     this.Use = function() {
         gl.useProgram(this.prog);
     }
@@ -153,7 +153,7 @@ function draw() {
 
     let matAccum0 = m4.multiply(rotateToPointZero, modelView);
     let matAccum1 = m4.multiply(translateToPointZero, matAccum0);
-        
+       
     /* Multiply the projection matrix times the modelview matrix to give the
        combined transformation matrix, and send that to the shader program. */
     let modelViewProjection = m4.multiply(projection, matAccum1);
@@ -164,7 +164,7 @@ function draw() {
 
     gl.uniform2fv(shProgram.iTexturePoint, [texturePoint.x, texturePoint.y]);
     gl.uniform1f(shProgram.iAngleRad, deg2rad(parameters.rotTexAngleDeg));
-
+    
     surface.Draw();
     
     let translationForUserPoint = calcVertPoint(mapBack(texturePoint.x, parameters.a), mapBack(texturePoint.y, maxAngle));
@@ -232,7 +232,7 @@ function CreateSurfaceData() {
     
     let angleStep = Math.PI / parameters.angleStep;
 
-        for (let z = 0; z <= (parameters.a - parameters.zStep).toFixed(2); z = +(parameters.zStep + z).toFixed(2)) {
+    for (let z = 0; z <= (parameters.a - parameters.zStep).toFixed(2); z = +(parameters.zStep + z).toFixed(2)) {
         for (let angle = 0; angle <= maxAngle - angleStep; angle += angleStep) {
             let u1 = z;
             let v1 = angle;
@@ -400,5 +400,26 @@ function init() {
 
     spaceball = new TrackballRotator(canvas, draw, 0);
 
+    draw();
+}
+
+window.onkeydown = (key) => {
+    switch (key.keyCode) {
+        case 87:
+            texturePoint.x -= 0.01;
+            break;
+        case 83:
+            texturePoint.x += 0.01;
+            break;
+        case 65:
+            texturePoint.y += 0.01;
+            break;
+        case 68:
+            texturePoint.y -= 0.01;
+            break;
+    }
+    // Check if point is on the surface
+    texturePoint.x = Math.max(0.001, Math.min(texturePoint.x, 0.999))
+    texturePoint.y = Math.max(0.001, Math.min(texturePoint.y, 0.999))
     draw();
 }
